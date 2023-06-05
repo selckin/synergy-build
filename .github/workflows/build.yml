@@ -32,7 +32,7 @@ jobs:
           cmake --build ${{github.workspace}}/build
 
       - name: Build
-        run: tar cf synergy.tar.bz2 ./build/bin/{synergyc,syntool,synergys,synergyd,synergy-core,synergy} ./build/version
+        run: tar cjf synergy.tar.bz2 ./build/bin/{synergyc,syntool,synergys,synergyd,synergy-core,synergy} ./build/version
 
       - uses: actions/upload-artifact@v2
         with:
