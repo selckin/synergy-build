@@ -28,7 +28,7 @@ jobs:
       - name: Build
         run: |
           cd synergy-core 
-          cmake -B ${{github.workspace}}/build
+          cmake -B ${{github.workspace}}/build -DSYNERGY_ENTERPRISE=ON
           cmake --build ${{github.workspace}}/build
 
       - name: Build
@@ -76,9 +76,8 @@ jobs:
           args: install openssl -y --forcex64 --no-progress
       - run: Copy-Item -Path "C:\\Program Files\\OpenSSL" -Destination "synergy-core\\ext\\openssl\\windows\\x64" -Recurse
 
-      # -D CMAKE_BUILD_TYPE=Release -D SYNERGY_ENTERPRISE=ON
       - run: |
-          cmake -S synergy-core -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release
+          cmake -S synergy-core -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release -DSYNERGY_ENTERPRISE=ON
           cd build
           Get-ChildItem -Recurse
           msbuild synergy-core.sln /p:Platform="x64" /p:Configuration=Release /m
