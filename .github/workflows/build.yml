@@ -28,11 +28,11 @@ jobs:
       - name: Build
         run: |
           cd synergy-core 
-          cmake -B ${{github.workspace}}/build -DSYNERGY_ENTERPRISE=ON
+          cmake -B ${{github.workspace}}/build -D CMAKE_BUILD_TYPE=Release -D SYNERGY_ENTERPRISE=ON
           cmake --build ${{github.workspace}}/build
 
       - name: Build
-        run: tar cjf synergy.tar.bz2 ./build/bin/{synergyc,syntool,synergys,synergyd,synergy-core,synergy} ./build/version
+        run: tar -C build/bin cjf synergy.tar.bz2 synergyc syntool synergys synergyd synergy-core synergy
 
       - uses: actions/upload-artifact@v2
         with:
