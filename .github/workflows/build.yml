@@ -98,6 +98,8 @@ jobs:
 
   release:
     needs: [build-windows, build-linux]
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
 
     steps:
@@ -110,8 +112,6 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: synergy-linux
-
-      - run: find
 
       - name: Release
         uses: softprops/action-gh-release@v1
