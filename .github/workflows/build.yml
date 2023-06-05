@@ -1,0 +1,122 @@
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - "v*"
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/checkout@v3
+        with:
+          repository: symless/synergy-core
+          path: synergy-core
+
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: qtcreator qtbase5-dev qttools5-dev cmake make g++ xorg-dev libssl-dev libx11-dev libsodium-dev libgl1-mesa-glx libegl1-mesa libcurl4-openssl-dev libavahi-compat-libdnssd-dev qtdeclarative5-dev libqt5svg5-dev libsystemd-dev libnotify-dev libgdk-pixbuf2.0-dev libglib2.0-dev
+          version: 20230705
+
+      - name: Build
+        run: |
+          cd synergy-core 
+          cmake -B ${{github.workspace}}/build
+          cmake --build ${{github.workspace}}/build
+
+      - name: Build
+        run: tar cf synergy.tar.bz2 ./build/bin/{synergyc,syntool,synergys,synergyd,synergy-core,synergy} ./build/version
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: synergy-linux
+          path: synergy.tar.bz2
+
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/checkout@v3
+        with:
+          repository: symless/synergy-core
+          path: synergy-core
+
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: 5.15.2
+      # synergy example 5.12.12
+      # 5.12.9
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+          sdk: 10.0.20348.0
+          vsversion: 2022
+      # synergy example: 10.0.19041.0
+      #         5/17/2023 10:49 PM                10.0.10240.0
+      #         5/17/2023 11:23 PM                10.0.17763.0
+      #         5/17/2023 10:46 PM                10.0.19041.0
+      #         5/17/2023 10:44 PM                10.0.20348.0
+      #         5/17/2023 10:26 PM                10.0.22000.0
+      #         5/17/2023 11:31 PM                10.0.22621.0
+
+      -
+        name: Choco help
+        uses: crazy-max/ghaction-chocolatey@v2
+        with:
+          args: install openssl -y --forcex64 --no-progress
+      - run: Copy-Item -Path "C:\\Program Files\\OpenSSL" -Destination "synergy-core\\ext\\openssl\\windows\\x64" -Recurse
+
+      # -D CMAKE_BUILD_TYPE=Release -D SYNERGY_ENTERPRISE=ON
+      - run: |
+          cmake -S synergy-core -B build -G "Visual Studio 17 2022" -DCMAKE_BUILD_TYPE=Release
+          cd build
+          Get-ChildItem -Recurse
+          msbuild synergy-core.sln /p:Platform="x64" /p:Configuration=Release /m
+
+      - run: Get-ChildItem -Recurse build
+
+      - run: |
+          cd build/installer
+          msbuild Synergy.sln /p:Configuration=Release
+
+      - run: Get-ChildItem -Recurse build
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: synergy-windows
+          path: build\installer\bin\Release\Synergy.msi
+
+  release:
+    needs: [build-windows, build-linux]
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: synergy-windows
+
+      - uses: actions/download-artifact@v2
+        with:
+          name: synergy-linux
+
+      - run: find
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            synergy.tar.bz2
+            Synergy.msi
